@@ -11,106 +11,45 @@ module wb_bram #(parameter mem_adr_width = 11) (
       wshb_if.slave wb_s
       );
 
-      // 4 bytes, 32 bits
+      // Memory block
       logic [3:0][7:0] mem [0:2**mem_adr_width-1];
-
-      logic ack_w, ack_r;
 
       wire [mem_adr_width-1:0] address_ind = wb_s.adr[mem_adr_width+1:2];
 
-      assign wb_s.err = 0;
-      assign wb_s.rty = 0;
-
+      // Managing reading and writing in memory
       always_ff @( posedge wb_s.clk )
       begin
 
-            case (wb_s.sel)
+            if (wb_s.sel[3]) 
+            begin
+                  mem[address_ind][3] <= wb_s.dat_ms[31:24];
+                  wb_s.dat_sm[31:24] <= mem[address_ind][3];
+            end;
 
-                  4'b0000 :
-                  begin
-                        if (wb_s.we)
-                        begin
-                              mem[address_ind] <= wb_s.dat_ms & 32'h00000000;
-                        end;
+            if (wb_s.sel[2]) 
+            begin
+                  mem[address_ind][2] <= wb_s.dat_ms[23:16];
+                  wb_s.dat_sm[23:16] <= mem[address_ind][2];
+            end;
 
-                        wb_s.dat_sm <= mem[address_ind] & 32'h00000000;
-                  end
+            if (wb_s.sel[1]) 
+            begin
+                  mem[address_ind][1] <= wb_s.dat_ms[15:8];
+                  wb_s.dat_sm[15:8] <= mem[address_ind][1];
+            end
 
-                  4'b0001 :
-                  begin
-                        if (wb_s.we)
-                        begin
-                              mem[address_ind] <= wb_s.dat_ms & 32'h000000ff;
-                        end;
-
-                        wb_s.dat_sm <= mem[address_ind] & 32'h000000ff;
-                  end
-
-                  4'b0010 :
-                  begin
-                        if (wb_s.we)
-                        begin
-                              mem[address_ind] <= wb_s.dat_ms & 32'h0000ff00;
-                        end;
-
-                        wb_s.dat_sm <= mem[address_ind] & 32'h0000ff00;
-                  end
-
-                  4'b0100 :
-                  begin
-                        if (wb_s.we)
-                        begin
-                              mem[address_ind] <= wb_s.dat_ms & 32'h00ff0000;
-                        end;
-
-                        wb_s.dat_sm <= mem[address_ind] & 32'h00ff0000;
-                  end
-
-                  4'b1000 :
-                  begin
-                        if (wb_s.we)
-                        begin
-                              mem[address_ind] <= wb_s.dat_ms & 32'hff000000;
-                        end;
-
-                        wb_s.dat_sm <= mem[address_ind] & 32'hff000000;
-                  end
-
-                  4'b0011 :
-                  begin
-                        if (wb_s.we)
-                        begin
-                              mem[address_ind] <= wb_s.dat_ms & 32'h0000ffff;
-                        end;
-
-                        wb_s.dat_sm <= mem[address_ind] & 32'h0000ffff;
-                  end
-
-                  4'b1100 :
-                  begin
-                        if (wb_s.we)
-                        begin
-                              mem[address_ind] <= wb_s.dat_ms & 32'hffff0000;
-                        end;
-
-                        wb_s.dat_sm <= mem[address_ind] & 32'hffff0000;
-                  end
-
-                  default:
-                  begin
-                        if (wb_s.we)
-                        begin
-                              mem[address_ind] <= wb_s.dat_ms;
-                        end;
-
-                        wb_s.dat_sm <= mem[address_ind];
-                  end
-            endcase
-
+            if (wb_s.sel[0]) 
+            begin
+                  mem[address_ind][0] <= wb_s.dat_ms[7:0];
+                  wb_s.dat_sm[7:0] <= mem[address_ind][0];
+            end
 
       end
 
+
       // Control block read acknowledge
+      logic ack_w, ack_r;
+
       always_ff @( posedge wb_s.clk or posedge wb_s.rst)
       begin
             if (wb_s.rst) 
@@ -128,9 +67,16 @@ module wb_bram #(parameter mem_adr_width = 11) (
             end
       end
 
-      assign ack_w = wb_s.we & wb_s.stb;
+      // ack for writing
+      assign ack_w = (wb_s.we & wb_s.stb);
 
+      //ACK
       assign wb_s.ack = ack_w | ack_r;
+
+
+      // No implementation yet for this signals
+      assign wb_s.err = 0;
+      assign wb_s.rty = 0;
 
 
 
