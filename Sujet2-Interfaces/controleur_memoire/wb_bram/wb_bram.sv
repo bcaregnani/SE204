@@ -14,7 +14,7 @@ module wb_bram #(parameter mem_adr_width = 11) (
 
 
       // Control block read acknowledge
-      logic ack_w, ack_r, burst_mode;
+      logic ack_w, ack_r;
 
       always_ff @( posedge wb_s.clk or posedge wb_s.rst)
       begin
@@ -25,13 +25,12 @@ module wb_bram #(parameter mem_adr_width = 11) (
             else
             begin
                   ack_r <= 0;
-                  burst_mode <= 0;
-                  if (wb_s.cyc && wb_s.stb && !wb_s.we)
+                  //if (wb_s.cyc && wb_s.stb && !wb_s.we)
+                  if (wb_s.stb & !wb_s.we)
                         begin
                         ack_r <= 1;
-                        if (ack_r && wb_s.cti==3'b000 || ack_r && wb_s.cti==3'b111 ) ack_r <= 0;      //Classic Cycle or End of Burst
+                        if (ack_r & (wb_s.cti==3'b000 | wb_s.cti==3'b111) ) ack_r <= 0;      //Classic Cycle or End of Burst
                         end
-                  if (ack_r && wb_s.cti==3'b010) burst_mode <= 1;
             end
       end
 
@@ -45,61 +44,39 @@ module wb_bram #(parameter mem_adr_width = 11) (
 
 
 
-
-
       // Memory block
       logic [3:0][7:0] mem [0:2**mem_adr_width-1];
 
+      wire burst_mode = (ack_r & wb_s.cti==3'b010);
       
-      // wire [mem_adr_width-1:0] address_ind = wb_s.adr[mem_adr_width+1:2];
       wire [mem_adr_width-1:0] address_ind = wb_s.adr[mem_adr_width+1:2];
 
-      /**
-      always_comb
-      begin
+      logic incr;
 
-      if (wb_s.cti==3'b000 || wb_s.cti == 3'b001 ) address_ind = wb_s.adr[mem_adr_width+1:2]; //Classic Cycle or Constant Address Burst Cycle
-      else if (wb_s.cti == 3'b010)  //Incremental Burst Cycle
-            begin
-                  if (!burst_mode) address_ind = wb_s.adr[mem_adr_width+1:2]; //First address
-                  else address_ind = address_ind;  //Increment addresses
-            end
-
-      end;
-      **/
+      assign incr = (burst_mode) ? 1 : 0;
 
       // Managing reading and writing in memory
       always_ff @( posedge wb_s.clk )
       begin
-
-            if (wb_s.sel[3]) 
+            if (wb_s.we)
             begin
-                  if (wb_s.we) mem[address_ind][3] <= wb_s.dat_ms[31:24];
-                  wb_s.dat_sm[31:24] <= mem[address_ind][3];
-                  if (ack_r && wb_s.cti==3'b010) wb_s.dat_sm[31:24] <= mem[address_ind + 1'b1][3];
-            end;
+            if (wb_s.sel[3]) mem[address_ind][3] <= wb_s.dat_ms[31:24];
 
-            if (wb_s.sel[2]) 
-            begin
-                  if (wb_s.we) mem[address_ind][2] <= wb_s.dat_ms[23:16];
-                  wb_s.dat_sm[23:16] <= mem[address_ind][2];
-                  if (ack_r && wb_s.cti==3'b010) wb_s.dat_sm[23:16] <= mem[address_ind + 1'b1][2];
-            end;
+            if (wb_s.sel[2]) mem[address_ind][2] <= wb_s.dat_ms[23:16];
 
-            if (wb_s.sel[1]) 
-            begin
-                  if (wb_s.we) mem[address_ind][1] <= wb_s.dat_ms[15:8];
-                  wb_s.dat_sm[15:8] <= mem[address_ind][1];
-                  if (ack_r && wb_s.cti==3'b010) wb_s.dat_sm[15:8] <= mem[address_ind + 1'b1][1];
-            end;
+            if (wb_s.sel[1]) mem[address_ind][1] <= wb_s.dat_ms[15:8];
 
-            if (wb_s.sel[0]) 
-            begin
-                  if (wb_s.we) mem[address_ind][0] <= wb_s.dat_ms[7:0];
-                  wb_s.dat_sm[7:0] <= mem[address_ind][0];
-                  if (ack_r && wb_s.cti==3'b010) wb_s.dat_sm[7:0] <= mem[address_ind + 1'b1][0];
-            end;
+            if (wb_s.sel[0]) mem[address_ind][0] <= wb_s.dat_ms[7:0];
+            end
 
+      end
+
+      always_ff @( posedge wb_s.clk )
+      begin
+            if (wb_s.sel[3]) wb_s.dat_sm[31:24] <= mem[address_ind + incr][3];
+            if (wb_s.sel[2]) wb_s.dat_sm[23:16] <= mem[address_ind + incr][2];
+            if (wb_s.sel[1]) wb_s.dat_sm[15:8] <= mem[address_ind + incr][1];
+            if (wb_s.sel[0]) wb_s.dat_sm[7:0] <= mem[address_ind + incr][0];
       end
 
 
