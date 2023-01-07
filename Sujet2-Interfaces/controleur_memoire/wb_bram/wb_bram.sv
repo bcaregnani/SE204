@@ -22,25 +22,25 @@ module wb_bram #(parameter mem_adr_width = 11) (
 
             if (wb_s.sel[3]) 
             begin
-                  mem[address_ind][3] <= wb_s.dat_ms[31:24];
+                  if (wb_s.we) mem[address_ind][3] <= wb_s.dat_ms[31:24];
                   wb_s.dat_sm[31:24] <= mem[address_ind][3];
             end;
 
             if (wb_s.sel[2]) 
             begin
-                  mem[address_ind][2] <= wb_s.dat_ms[23:16];
+                  if (wb_s.we) mem[address_ind][2] <= wb_s.dat_ms[23:16];
                   wb_s.dat_sm[23:16] <= mem[address_ind][2];
             end;
 
             if (wb_s.sel[1]) 
             begin
-                  mem[address_ind][1] <= wb_s.dat_ms[15:8];
+                  if (wb_s.we) mem[address_ind][1] <= wb_s.dat_ms[15:8];
                   wb_s.dat_sm[15:8] <= mem[address_ind][1];
             end
 
             if (wb_s.sel[0]) 
             begin
-                  mem[address_ind][0] <= wb_s.dat_ms[7:0];
+                  if (wb_s.we) mem[address_ind][0] <= wb_s.dat_ms[7:0];
                   wb_s.dat_sm[7:0] <= mem[address_ind][0];
             end
 
