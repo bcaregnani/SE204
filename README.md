@@ -1,3 +1,3 @@
-# My new project
+# SE204
 
-This is the default README.md. Please edit me.
+Reconfigurable architectures and HDL language project in SystemVerylog language within the framework of the course SE204 at Telecom Paris. 
